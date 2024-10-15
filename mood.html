@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rastreador de Humor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 100vh;
+        }
+        .mood-button {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+            font-size: 1.5rem;
+        }
+        .mood-button.active {
+            background-color: #333;
+            color: white;
+        }
+        .logo {
+            border: 2px solid #d3d3d3;
+            border-radius: 9999px;
+        }
+        .text-2xl {
+            color: #4B0082;
+        }
+        .text-xl {
+            color: #a8a8a8;
+            font-weight: 400;
+            font-size: 16px;
+            margin-top: 40px;
+            background-color: white;
+        }
+        .hidden {
+            display: none;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+        .calendar-day {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            color: #333;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .calendar-day .mood-icon {
+            position: absolute;
+            bottom: -1rem;
+            font-size: 1rem;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50; /* Garantir que o modal fique acima de outros elementos */
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 90vw; /* Limitar a largura máxima do modal */
+            max-height: 80vh; /* Limitar a altura máxima do modal */
+            width: 90%; /* Largura responsiva */
+            height: auto; /* Altura automática */
+            overflow: hidden; /* Evitar rolagem */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Alinhar conteúdo para o topo */
+            position: relative; /* Para posicionar o botão de fechar */
+        }
+        .btn-primary {
+            background-color: #D41573;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            display: block;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            background-color: #b0125e;
+        }
+        .btn-secondary {
+            background-color: #6A0DAD;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            display: block;
+            cursor: pointer;
+        }
+        .btn-secondary:hover {
+            background-color: #4B0082;
+        }
+        .input-field {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            border: 1px solid #ccc;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            display: block;
+        }
+        .footer-text {
+            margin-top: 2rem;
+            font-size: 0.875rem;
+            color: #777;
+            text-align: center;
+            padding: 1rem 0;
+        }
+        .chart-container {
+            width: 100%;
+            max-width: 200px; /* Reduzir ainda mais o tamanho do gráfico */
+            margin: 1rem auto;
+            height: 200px; /* Definir altura fixa para garantir consistência */
+        }
+        .legend-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .legend-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background-color: white; /* Fundo branco */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            border: 2px solid; /* Borda colorida conforme o humor */
+        }
+        /* Botão de fechar (X) no topo direito do modal */
+        .close-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #333;
+        }
+        .close-button:hover {
+            color: #D41573;
+        }
+        /* Ajustes para dispositivos móveis */
+        @media (max-width: 768px) {
+            .modal-content {
+                max-width: 90vw;
+                max-height: 80vh;
+                padding: 0.5rem;
+            }
+            .chart-container {
+                max-width: 150px;
+                margin: 1rem auto;
+                height: 150px;
+            }
+            .legend-icon {
+                width: 1.5rem;
+                height: 1.5rem;
+                font-size: 0.875rem;
+            }
+            .legend-item span {
+                font-size: 0.875rem; /* Reduzir o tamanho da fonte das legendas */
+            }
+            .modal-content h2 {
+                font-size: 1.5rem; /* Ajustar tamanho do título para mobile */
+                margin-bottom: 1rem;
+            }
+            .btn-primary, .btn-secondary {
+                max-width: 250px; /* Reduzir o tamanho dos botões em mobile */
+            }
+            .close-button {
+                font-size: 1.25rem; /* Reduzir tamanho do 'X' em mobile */
+            }
+        }
+            /* Estilos para o botão flutuante do WhatsApp */
+    .whatsapp-button {
+        position: fixed;
+        width: 48px;
+        height: 48px;
+        background-color: #25D366; /* Verde padrão do WhatsApp */
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        right: 32px; /* Distância da margem direita */
+        bottom: 32px; /* Distância da margem inferior */
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Sombras para destacar o botão */
+        z-index: 1000; /* Certificar que o botão fique por cima de outros elementos */
+        cursor: pointer;
+    }
+
+    .whatsapp-button i {
+        font-size: 24px; /* Tamanho do ícone */
+    }
+
+    .whatsapp-button:hover {
+        background-color: #1EBE53; /* Cor ao passar o mouse por cima */
+    }
+    </style>
+</head>
+<body id="body">
+    <a href="https://wa.me/5547997426327" target="_blank" class="whatsapp-button">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    <div class="flex-grow flex items-center justify-center">
+        <!-- Tela 1 -->
+        <div id="initial-screen" class="text-center px-4">
+            <img src="https://scontent.fbnu4-1.fna.fbcdn.net/v/t39.30808-6/332326702_1336506660525116_4559090009556327255_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeEdYPsWXqkOjeNKhbewPMIealAJPpU6ZlRqUAk-lTpmVE8O7JZXf5xghnyrgT7tO9p_sPyPgxe2SgT4QDZudDnW&_nc_ohc=9WxxF-5UoCQQ7kNvgG_1OeK&_nc_ht=scontent.fbnu4-1.fna&_nc_gid=A4RF0jHNRKiGUhBkXnA--9_&oh=00_AYBpROn5BbkgoZb8FkIob2wRYZwI478OpVyrYDl0CmaUVw&oe=671316C1" alt="Logo" class="mx-auto mb-8 w-32 h-32 logo">
+            <input type="text" id="username" placeholder="Digite seu nome" class="input-field mt-8">
+            <button onclick="startApp()" class="btn-primary mt-4">Começar</button>
+        </div>
+
+        <!-- Tela 2 -->
+        <div id="calendar-screen" class="text-center px-4 hidden">
+            <div class="flex justify-end">
+                <button onclick="openModal()" class="text-2xl"><i class="fas fa-cog"></i></button>
+            </div>
+            <!-- Novo: Adicionando logo e título -->
+            <img src="https://scontent.fbnu4-1.fna.fbcdn.net/v/t39.30808-6/332326702_1336506660525116_4559090009556327255_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeEdYPsWXqkOjeNKhbewPMIealAJPpU6ZlRqUAk-lTpmVE8O7JZXf5xghnyrgT7tO9p_sPyPgxe2SgT4QDZudDnW&_nc_ohc=9WxxF-5UoCQQ7kNvgG_1OeK&_nc_ht=scontent.fbnu4-1.fna&_nc_gid=A4RF0jHNRKiGUhBkXnA--9_&oh=00_AYBpROn5BbkgoZb8FkIob2wRYZwI478OpVyrYDl0CmaUVw&oe=671316C1" alt="Logo" class="mx-auto mb-4 w-20 h-20 logo">
+            <h1 class="text-2xl font-bold mb-4">Humor do Dia</h1>        
+            <h2 class="text-xl">Outubro 2024</h2>
+            <div class="calendar mt-4">
+                <div>Dom</div>
+                <div>Seg</div>
+                <div>Ter</div>
+                <div>Qua</div>
+                <div>Qui</div>
+                <div>Sex</div>
+                <div>Sáb</div>
+                <!-- Gerar dias do calendário dinamicamente -->
+                <script>
+                    const daysInMonth = new Date(2024, 1, 0).getDate(); // Fevereiro tem 29 dias em 2024
+                    const firstDay = new Date(2024, 0, 1).getDay();
+                    for (let i = 0; i < firstDay; i++) {
+                        document.write('<div></div>');
+                    }
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        document.write(`<div class="calendar-day" onclick="selectDay(${i})">${i}<div class="mood-icon" id="mood-icon-${i}"></div></div>`);
+                    }
+                </script>
+            </div>
+            <button onclick="openMoodChartModal()" class="btn-secondary mt-4">Gráfico de Humor</button>
+        </div>
+
+        <!-- Tela 3 -->
+        <div id="mood-screen" class="text-center px-4 hidden">
+            <p class="text-2xl" id="greeting">👋 Olá!</p>
+            <h1 class="text-3xl font-bold mt-2">Como você está se sentindo hoje?</h1>
+            <div class="mt-8">
+                <div id="emoji-container" class="bg-[#D9A38A] rounded-full w-24 h-24 mx-auto flex items-center justify-center">
+                    <div id="emoji" class="text-6xl">😐</div>
+                </div>
+                <p id="mood-text" class="mt-4 text-lg">Estou me sentindo Neutro</p>
+            </div>
+            <div class="mt-8 flex justify-center items-center space-x-2 flex-wrap">
+                <button onclick="setMood('😢', 'Estou me sentindo triste.', '#AEC6CF', 'black')" class="mood-button">😢</button>
+                <button onclick="setMood('😔', 'Estou me sentindo culpado.', '#C2B280', 'black')" class="mood-button">😔</button>
+                <button onclick="setMood('😳', 'Estou me sentindo envergonhado.', '#FFD1DC', 'black')" class="mood-button">😳</button>
+                <button onclick="setMood('😰', 'Estou me sentindo ansioso.', '#FFB347', 'black')" class="mood-button">😰</button>
+                <button onclick="setMood('😨', 'Estou me sentindo com medo.', '#B39EB5', 'black')" class="mood-button">😨</button>
+                <button onclick="setMood('😡', 'Estou me sentindo irritado.', '#FF6961', 'black')" class="mood-button">😡</button>
+                <button onclick="setMood('🤢', 'Estou me sentindo enojado.', '#77DD77', 'black')" class="mood-button">🤢</button>
+                <button onclick="setMood('😲', 'Estou me sentindo surpreso.', '#FDFD96', 'black')" class="mood-button">😲</button>
+                <button onclick="setMood('😃', 'Estou me sentindo feliz.', '#FFFACD', 'black')" class="mood-button">😃</button>
+                <button onclick="setMood('😊', 'Estou me sentindo esperançoso.', '#77C7C0', 'black')" class="mood-button">😊</button>
+            </div>
+            <textarea id="additional-info" placeholder="Conte um pouco mais sobre como se sente" class="input-field mt-4"></textarea>
+            <button class="btn-primary mt-4" onclick="saveMood()">Definir Humor <i class="fas fa-check"></i></button>
+        </div>
+
+        <!-- Modal -->
+        <div id="modal" class="modal hidden">
+            <div class="modal-content">
+                <button class="close-button" onclick="closeModal()">&times;</button>
+                <h2 class="text-2xl mb-4">Mudar Seu Nome</h2>
+                <input type="text" id="new-username" placeholder="Digite o novo nome" class="input-field">
+                <button onclick="changeName()" class="btn-primary mt-4">Salvar</button>
+                <button onclick="closeModal()" class="btn-primary mt-4 bg-gray-500">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- Modal de Gráfico de Humor -->
+        <div id="mood-chart-modal" class="modal hidden">
+            <div class="modal-content">
+                <button class="close-button" onclick="closeMoodChartModal()">&times;</button>
+                <h2 class="text-2xl mb-4">Gráfico de Humor</h2>
+                <div class="chart-container">
+                    <canvas id="moodChart"></canvas>
+                </div>
+                <div class="legend-container" id="dynamic-legend-container">
+                    <!-- Legendas serão inseridas dinamicamente aqui -->
+                </div>
+                <button onclick="closeMoodChartModal()" class="btn-primary mt-4">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-text">
+        © 2024 Psykhé. Todos os direitos reservados.
+    </div>
+
+    <script>
+        let selectedDay = null;
+        let selectedEmoji = '😐';
+        const moodHistory = {};
+        let moodChartInstance = null; // Variável para armazenar a instância do gráfico
+
+        function startApp() {
+            const username = document.getElementById('username').value;
+            if (username) {
+                document.getElementById('greeting').innerText = `👋 Olá ${username}!`;
+                document.getElementById('initial-screen').classList.add('hidden');
+                document.getElementById('calendar-screen').classList.remove('hidden');
+            } else {
+                alert('Por favor, digite seu nome');
+            }
+        }
+
+        function openModal() {
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+        }
+
+        function changeName() {
+            const newUsername = document.getElementById('new-username').value;
+            if (newUsername) {
+                document.getElementById('greeting').innerText = `👋 Olá ${newUsername}!`;
+                closeModal();
+            } else {
+                alert('Por favor, digite um novo nome');
+            }
+        }
+
+        function selectDay(day) {
+            selectedDay = day;
+            document.getElementById('calendar-screen').classList.add('hidden');
+            document.getElementById('mood-screen').classList.remove('hidden');
+
+            // Se já houver um humor salvo para o dia selecionado, exibi-lo
+            if (moodHistory[day]) {
+                setMood(moodHistory[day].emoji, moodHistory[day].mood, '#D9A38A', 'black');
+                document.getElementById('additional-info').value = moodHistory[day].info;
+            } else {
+                setMood('😐', 'Estou me sentindo Neutro', '#D9A38A', 'black');
+                document.getElementById('additional-info').value = '';
+            }
+        }
+
+        function setMood(emoji, mood, bgColor, textColor) {
+            document.getElementById('emoji').innerText = emoji;
+            document.getElementById('mood-text').innerText = mood;
+            document.getElementById('body').style.backgroundColor = bgColor;
+            document.querySelector('.text-center').style.color = textColor;
+            selectedEmoji = emoji;
+        }
+
+        function saveMood() {
+            const additionalInfo = document.getElementById('additional-info').value;
+            document.getElementById(`mood-icon-${selectedDay}`).innerText = selectedEmoji;
+            moodHistory[selectedDay] = { emoji: selectedEmoji, mood: document.getElementById('mood-text').innerText, info: additionalInfo };
+            document.getElementById('mood-screen').classList.add('hidden');
+            document.getElementById('calendar-screen').classList.remove('hidden');
+            console.log(`Dia: ${selectedDay}, Humor: ${selectedEmoji}, Info Adicional: ${additionalInfo}`);
+        }
+
+        function openMoodChartModal() {
+            const moodCounts = {};
+            Object.values(moodHistory).forEach(mood => {
+                moodCounts[mood.emoji] = (moodCounts[mood.emoji] || 0) + 1;
+            });
+
+            // Verificar se há dados para exibir
+            if (Object.keys(moodCounts).length === 0) {
+                alert('Nenhum humor registrado ainda.');
+                return;
+            }
+
+            // Destruir a instância anterior do gráfico, se existir
+            if (moodChartInstance) {
+                moodChartInstance.destroy();
+            }
+
+            document.getElementById('mood-chart-modal').classList.remove('hidden');
+
+            const ctx = document.getElementById('moodChart').getContext('2d');
+
+            moodChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(moodCounts),
+                    datasets: [{
+                        data: Object.values(moodCounts),
+                        backgroundColor: Object.keys(moodCounts).map(emoji => getColorByEmoji(emoji))
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Permitir ajuste de tamanho
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    return `${label}: ${value}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gerar legendas dinamicamente
+            const legendContainer = document.getElementById('dynamic-legend-container');
+            legendContainer.innerHTML = ''; // Limpar legendas anteriores
+
+            Object.keys(moodCounts).forEach(emoji => {
+                const moodName = getMoodNameByEmoji(emoji);
+                const color = getColorByEmoji(emoji);
+
+                const legendItem = document.createElement('div');
+                legendItem.classList.add('legend-item');
+
+                const legendIcon = document.createElement('div');
+                legendIcon.classList.add('legend-icon');
+                legendIcon.style.borderColor = color;
+                legendIcon.innerText = emoji;
+
+                const legendText = document.createElement('span');
+                legendText.innerText = moodName;
+
+                legendItem.appendChild(legendIcon);
+                legendItem.appendChild(legendText);
+
+                legendContainer.appendChild(legendItem);
+            });
+        }
+
+        function getColorByEmoji(emoji) {
+            const moodColors = {
+                '😢': '#AEC6CF', // Triste - Pastel Blue
+                '😔': '#C2B280', // Culpado - Pastel Brown
+                '😳': '#FFD1DC', // Envergonhado - Pastel Pink
+                '😰': '#FFB347', // Ansioso - Pastel Orange
+                '😨': '#B39EB5', // Com medo - Pastel Purple
+                '😡': '#FF6961', // Irritado - Pastel Red
+                '🤢': '#77DD77', // Enojado - Pastel Green
+                '😲': '#FDFD96', // Surpreso - Pastel Yellow
+                '😃': '#FFFACD', // Feliz - Pastel Lemon Chiffon
+                '😊': '#77C7C0'  // Esperançoso - Pastel Teal
+            };
+            return moodColors[emoji] || '#000000';
+        }
+
+        function getMoodNameByEmoji(emoji) {
+            const moodNames = {
+                '😢': 'Triste',
+                '😔': 'Culpado',
+                '😳': 'Envergonhado',
+                '😰': 'Ansioso',
+                '😨': 'Com medo',
+                '😡': 'Irritado',
+                '🤢': 'Enojado',
+                '😲': 'Surpreso',
+                '😃': 'Feliz',
+                '😊': 'Esperançoso'
+            };
+            return moodNames[emoji] || 'Desconhecido';
+        }
+
+        function closeMoodChartModal() {
+            document.getElementById('mood-chart-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
